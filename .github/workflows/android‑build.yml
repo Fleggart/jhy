@@ -1,57 +1,42 @@
-name: Android Build
+name: Build Android LÖVE
 
 on:
   push:
     branches: ["main"]
   pull_request:
+    branches: ["main"]
 
 jobs:
-  build:
+  build-android:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      # 1) Checkout your repo
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    # 设置 Java
-    - name: Setup JDK
-      uses: actions/setup-java@v3
-      with:
-        distribution: temurin
-        java-version: "17"
+      # 2) Java / Android SDK setup
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: "17"
 
-    # 安装 Android SDK/NDK
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-      with:
-        packages: "platform-tools platforms;android-33 build-tools;33.0.2 ndk;25.2.9519653"
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+        with:
+          android-version: "34"   # 可根据 love-android 的需求调整
 
-    # 缓存 Gradle
-    - name: Cache Gradle
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.gradle/caches
-          ~/.gradle/wrapper
-        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+      # 3) Make gradlew executable
+      - name: Grant execute permission
+        run: chmod +x gradlew
 
-    # 赋予执行权限
-    - name: Grant execute permission for gradlew
-      run: chmod +x android/gradlew
+      # 4) Build APK or bundle
+      - name: Build Android APK
+        run: ./gradlew assembleNormalRecord
 
-    # 构建 APK/AAB
-    - name: Build Android
-      working-directory: android
-      run: |
-        ./gradlew clean
-        ./gradlew assembleEmbedNoRecordRelease
-        ./gradlew bundleEmbedNoRecordRelease
-
-    # 上传产物
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: android-artifacts
-        path: |
-          android/app/build/outputs/**/*.apk
-          android/app/build/outputs/**/*.aab
+      # 5) Upload artifacts
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: app/build/outputs/**/*.apk
