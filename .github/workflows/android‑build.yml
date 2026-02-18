@@ -2,62 +2,56 @@ name: Android Build
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
   pull_request:
 
-env:
-  ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-
 jobs:
-  build-android:
-    name: Build Android
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v4
 
-    # ----------------------------------------
-    # Android SDK / NDK Cache
-    - name: Restore Android SDK cache
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.android
-          ~/.gradle
-          ${{ env.ANDROID_SDK_ROOT }}
-        key: android-sdk-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-
-    - name: Setup Java
+    # 设置 Java
+    - name: Setup JDK
       uses: actions/setup-java@v3
       with:
         distribution: temurin
-        java-version: '17'
+        java-version: "17"
 
-    - name: Install Android SDK tools
-      run: |
-        mkdir -p $ANDROID_SDK_ROOT
-        touch $ANDROID_SDK_ROOT/licenses/android-sdk-license
-        yes | sdkmanager --licenses >/dev/null || true
-        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" --sdk_root=$ANDROID_SDK_ROOT
+    # 安装 Android SDK/NDK
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      with:
+        packages: "platform-tools platforms;android-33 build-tools;33.0.2 ndk;25.2.9519653"
 
-    # ----------------------------------------
-    # Build
-    - name: Build APK and AAB
-      working-directory: ./android
+    # 缓存 Gradle
+    - name: Cache Gradle
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+    # 赋予执行权限
+    - name: Grant execute permission for gradlew
+      run: chmod +x android/gradlew
+
+    # 构建 APK/AAB
+    - name: Build Android
+      working-directory: android
       run: |
-        chmod +x gradlew
         ./gradlew clean
         ./gradlew assembleEmbedNoRecordRelease
         ./gradlew bundleEmbedNoRecordRelease
 
-    # ----------------------------------------
-    # Upload artifacts
+    # 上传产物
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: android-build-artifacts
+        name: android-artifacts
         path: |
           android/app/build/outputs/**/*.apk
           android/app/build/outputs/**/*.aab
