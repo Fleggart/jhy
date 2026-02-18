@@ -21,7 +21,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           java-version: 17
-          distribution: 'adoptopenjdk'  # 或 'zulu'，根据你的需要选择
+          distribution: 'adoptium'  # 或 'zulu'，根据你的需要选择
           check-latest: false
           server-id: github
           server-username: GITHUB_ACTOR
