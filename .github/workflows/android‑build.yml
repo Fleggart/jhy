@@ -1,4 +1,4 @@
-name: Build Android LÖVE
+name: Build Android LÖVE Game
 
 on:
   push:
@@ -22,31 +22,30 @@ jobs:
         with:
           java-version: 17
           distribution: 'temurin'  # or 'zulu', choose according to your needs
-          check-latest: false
-          server-id: github
-          server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
-          overwrite-settings: true
-          job-status: success
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       # 3) Setup Android SDK
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
         with:
-          android-version: "34"   # Adjust according to your love-android requirements
+          android-version: "34"  # Adjust according to your project's needs
 
-      # 4) Make gradlew executable
-      - name: Grant execute permission to gradlew
-        run: chmod +x gradlew
+      # 4) Install dependencies for building Android APK from LÖVE game
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget https://github.com/love2d/love-android/releases/download/1.0.0/love-android-1.0.0.zip
+          unzip love-android-1.0.0.zip -d love-android
 
-      # 5) Build APK or bundle
+      # 5) Build APK or bundle from .love file
       - name: Build Android APK
-        run: ./gradlew assembleNormalRecord
+        run: |
+          cd love-android
+          ./gradlew assembleRelease  # Assuming you have a release build configuration
 
       # 6) Upload APK artifact
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: app/build/outputs/**/*.apk
+          path: love-android/app/build/outputs/apk/release/*.apk
