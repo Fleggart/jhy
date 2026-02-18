@@ -1,1 +1,63 @@
+name: Android Build
 
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+env:
+  ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
+
+jobs:
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # ----------------------------------------
+    # Android SDK / NDK Cache
+    - name: Restore Android SDK cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.android
+          ~/.gradle
+          ${{ env.ANDROID_SDK_ROOT }}
+        key: android-sdk-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Install Android SDK tools
+      run: |
+        mkdir -p $ANDROID_SDK_ROOT
+        touch $ANDROID_SDK_ROOT/licenses/android-sdk-license
+        yes | sdkmanager --licenses >/dev/null || true
+        sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" --sdk_root=$ANDROID_SDK_ROOT
+
+    # ----------------------------------------
+    # Build
+    - name: Build APK and AAB
+      working-directory: ./android
+      run: |
+        chmod +x gradlew
+        ./gradlew clean
+        ./gradlew assembleEmbedNoRecordRelease
+        ./gradlew bundleEmbedNoRecordRelease
+
+    # ----------------------------------------
+    # Upload artifacts
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-build-artifacts
+        path: |
+          android/app/build/outputs/**/*.apk
+          android/app/build/outputs/**/*.aab
