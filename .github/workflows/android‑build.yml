@@ -34,8 +34,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y wget unzip
-          wget https://github.com/love2d/love-android/releases/download/1.0.0/love-android-1.0.0.zip
-          unzip love-android-1.0.0.zip -d love-android
+          wget https://github.com/love2d/love-android/releases/download/1.1.0/love-android-1.1.0.zip  # Make sure the link is valid
+          unzip love-android-1.1.0.zip -d love-android
 
       # 5) Build APK or bundle from .love file
       - name: Build Android APK
